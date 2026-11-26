@@ -42,7 +42,9 @@ def _prepare_features(records: list[SalesRecord]) -> pd.DataFrame:
     df["day_of_week"] = pd.to_datetime(df["sale_date"]).dt.day_of_week
     df["is_weekend"] = (df["day_of_week"] >= 4).astype(int)
     df["lag_1_demand"] = df["units_sold"].shift(1).bfill()
-    df["rolling_7d_demand"] = df["units_sold"].rolling(window=7, min_periods=1).mean().shift(1).bfill()
+    df["rolling_7d_demand"] = (
+        df["units_sold"].rolling(window=7, min_periods=1).mean().shift(1).bfill()
+    )
     return df
 
 
@@ -165,8 +167,12 @@ def run_demand_forecast(
         horizon_days=horizon_days,
         champion_model=champion,
         metrics=[
-            ModelComparisonMetric(model_name="XGBoost", mae=xgb_mae, rmse=xgb_rmse, r2_score=xgb_r2),
-            ModelComparisonMetric(model_name="RandomForest", mae=rf_mae, rmse=rf_rmse, r2_score=rf_r2),
+            ModelComparisonMetric(
+                model_name="XGBoost", mae=xgb_mae, rmse=xgb_rmse, r2_score=xgb_r2
+            ),
+            ModelComparisonMetric(
+                model_name="RandomForest", mae=rf_mae, rmse=rf_rmse, r2_score=rf_r2
+            ),
         ],
         feature_importances=importances,
         series=series,

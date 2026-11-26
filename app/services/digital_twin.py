@@ -17,11 +17,7 @@ def run_monte_carlo_digital_twin(db: Session, req: DigitalTwinRequest) -> Digita
     if not item:
         raise ValueError("No inventory item found for simulation.")
 
-    sales = (
-        db.query(SalesRecord.units_sold)
-        .filter(SalesRecord.sku == item.sku)
-        .all()
-    )
+    sales = db.query(SalesRecord.units_sold).filter(SalesRecord.sku == item.sku).all()
     demand_vals = np.array([row[0] for row in sales], dtype=float)
     mean_demand = float(np.mean(demand_vals)) if len(demand_vals) else 15.0
     std_demand = float(max(2.0, np.std(demand_vals))) if len(demand_vals) else 3.5

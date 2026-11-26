@@ -192,15 +192,27 @@ def ensure_seeded_data(db: Session, force_sync: bool = False) -> dict:
                 weekend_boost = 1.22 if dow in (4, 5, 6) else 0.96
                 is_hol = rec_date in holiday_dates or (days_ago % 19 == 0)
                 holiday_boost = 1.28 if is_hol else 1.0
-                temp = float(np.clip(base_temp + rng.normal(0, 2.8) + 2.0 * np.sin(days_ago / 7.0), 14, 40))
+                temp = float(
+                    np.clip(base_temp + rng.normal(0, 2.8) + 2.0 * np.sin(days_ago / 7.0), 14, 40)
+                )
                 hum = float(np.clip(base_hum + rng.normal(0, 6.0), 35, 95))
                 promo = 15.0 if days_ago % 11 == 0 else 0.0
                 promo_boost = 1.0 + (promo / 100.0) * 1.4
-                weather_effect = 1.0 + (0.012 * (temp - 24.0) if "Fruit" in entry["category"] or "Dairy" in entry["category"] else -0.004 * (temp - 25.0))
+                weather_effect = 1.0 + (
+                    0.012 * (temp - 24.0)
+                    if "Fruit" in entry["category"] or "Dairy" in entry["category"]
+                    else -0.004 * (temp - 25.0)
+                )
 
-                expected = demand_anchor * weekend_boost * holiday_boost * promo_boost * weather_effect
+                expected = (
+                    demand_anchor * weekend_boost * holiday_boost * promo_boost * weather_effect
+                )
                 sold = float(max(4.0, round(expected + rng.normal(0, demand_anchor * 0.09), 2)))
-                waste = float(round(max(0.4, sold * entry["spoilage_rate_per_day"] * rng.uniform(0.4, 1.15)), 2))
+                waste = float(
+                    round(
+                        max(0.4, sold * entry["spoilage_rate_per_day"] * rng.uniform(0.4, 1.15)), 2
+                    )
+                )
 
                 records_to_insert.append(
                     SalesRecord(

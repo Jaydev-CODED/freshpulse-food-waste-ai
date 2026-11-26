@@ -56,7 +56,9 @@ def ensure_initial_model_registered(db: Session) -> ModelRegistry:
     mae = round(float(mean_absolute_error(actual, preds)), 3)
     rmse = round(float(root_mean_squared_error(actual, preds)), 3)
     r2 = round(float(r2_score(actual, preds)), 3)
-    psi = compute_psi(df.iloc[:split]["units_sold"].to_numpy(), df.iloc[split:]["units_sold"].to_numpy())
+    psi = compute_psi(
+        df.iloc[:split]["units_sold"].to_numpy(), df.iloc[split:]["units_sold"].to_numpy()
+    )
 
     entry = ModelRegistry(
         model_name="XGBoost-DemandForecaster",
@@ -198,7 +200,9 @@ def retrain_with_auto_rollback(
         )
 
     # Promote candidate to champion
-    db.query(ModelRegistry).filter(ModelRegistry.is_champion.is_(True)).update({"is_champion": False})
+    db.query(ModelRegistry).filter(ModelRegistry.is_champion.is_(True)).update(
+        {"is_champion": False}
+    )
     promoted_entry = ModelRegistry(
         model_name="XGBoost-DemandForecaster",
         version=next_version,

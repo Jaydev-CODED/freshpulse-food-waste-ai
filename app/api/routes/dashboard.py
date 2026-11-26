@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.metrics import INVENTORY_VALUE_AT_RISK_GAUGE, PREDICTED_WASTE_KG_GAUGE
 from app.models.domain import InventoryItem, SalesRecord
-from app.schemas.api import DashboardSummaryResponse, InventorySummaryItem
+from app.schemas.api import DashboardSummaryResponse, InventorySummaryItem, OptimizationRequest
 from app.services.data_seeder import ensure_seeded_data
 from app.services.external_apis import (
     fetch_live_weather,
@@ -12,7 +12,6 @@ from app.services.external_apis import (
     get_supplier_telemetry,
 )
 from app.services.optimizer import run_linear_programming_optimizer
-from app.schemas.api import OptimizationRequest
 
 router = APIRouter(tags=["Dashboard & Real-Time Ingestion"])
 
@@ -49,7 +48,9 @@ def get_dashboard_summary(db: Session = Depends(get_db)) -> DashboardSummaryResp
             supplier_name=i.supplier_name,
             supplier_lead_days=i.supplier_lead_days,
             basket_frequency=i.basket_frequency,
-            value_at_risk_usd=round(i.current_stock_kg * i.unit_cost, 2) if i.days_remaining <= 2 else 0.0,
+            value_at_risk_usd=round(i.current_stock_kg * i.unit_cost, 2)
+            if i.days_remaining <= 2
+            else 0.0,
         )
         for i in items
     ]

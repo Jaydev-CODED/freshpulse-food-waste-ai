@@ -30,7 +30,9 @@ def mine_product_associations(
             rules=[],
         )
 
-    rules_df = association_rules(frequent_itemsets, metric="confidence", min_threshold=min_confidence)
+    rules_df = association_rules(
+        frequent_itemsets, metric="confidence", min_threshold=min_confidence
+    )
     if rules_df.empty:
         return AprioriResponse(
             transactions_analyzed=len(sample_txns),

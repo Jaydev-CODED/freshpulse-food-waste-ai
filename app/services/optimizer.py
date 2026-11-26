@@ -33,21 +33,13 @@ def run_linear_programming_optimizer(
     prob = pulp.LpProblem("FreshPulse_Profit_Waste_Optimization", pulp.LpMaximize)
 
     order_vars = {
-        item.sku: pulp.LpVariable(f"order_{item.sku}", lowBound=0, upBound=250)
-        for item in items
+        item.sku: pulp.LpVariable(f"order_{item.sku}", lowBound=0, upBound=250) for item in items
     }
     markdown_vars = {
-        item.sku: pulp.LpVariable(f"markdown_{item.sku}", lowBound=0, upBound=40)
-        for item in items
+        item.sku: pulp.LpVariable(f"markdown_{item.sku}", lowBound=0, upBound=40) for item in items
     }
-    sell_vars = {
-        item.sku: pulp.LpVariable(f"sell_{item.sku}", lowBound=0)
-        for item in items
-    }
-    waste_vars = {
-        item.sku: pulp.LpVariable(f"waste_{item.sku}", lowBound=0)
-        for item in items
-    }
+    sell_vars = {item.sku: pulp.LpVariable(f"sell_{item.sku}", lowBound=0) for item in items}
+    waste_vars = {item.sku: pulp.LpVariable(f"waste_{item.sku}", lowBound=0) for item in items}
 
     # Objective: Maximize Gross Revenue - Order Cost - Waste Penalty (with markdown clearance incentive)
     objective_terms = []
@@ -62,7 +54,9 @@ def run_linear_programming_optimizer(
     prob += pulp.lpSum(objective_terms)
 
     # Global constraints: procurement budget and cold-storage capacity
-    prob += pulp.lpSum(item.unit_cost * order_vars[item.sku] for item in items) <= req.max_budget_usd
+    prob += (
+        pulp.lpSum(item.unit_cost * order_vars[item.sku] for item in items) <= req.max_budget_usd
+    )
     prob += (
         pulp.lpSum(item.current_stock_kg + order_vars[item.sku] for item in items)
         <= req.max_cold_storage_kg
@@ -111,9 +105,13 @@ def run_linear_programming_optimizer(
 
         # Baseline waste without optimization (naive reorder + no markdown)
         d7 = demand_7d[item.sku]
-        naive_unsold = max(0.0, item.current_stock_kg + max(0.0, d7 - item.current_stock_kg * 0.5) - d7)
+        naive_unsold = max(
+            0.0, item.current_stock_kg + max(0.0, d7 - item.current_stock_kg * 0.5) - d7
+        )
         expiry_risk = 0.65 if item.days_remaining <= 2 else 0.25
-        baseline_waste += round(naive_unsold * expiry_risk + item.current_stock_kg * item.spoilage_rate_per_day, 2)
+        baseline_waste += round(
+            naive_unsold * expiry_risk + item.current_stock_kg * item.spoilage_rate_per_day, 2
+        )
 
         total_profit += sku_profit
         total_waste += waste_q
@@ -140,7 +138,9 @@ def run_linear_programming_optimizer(
 
     PREDICTED_WASTE_KG_GAUGE.set(round(total_waste, 2))
     INVENTORY_VALUE_AT_RISK_GAUGE.set(round(value_at_risk, 2))
-    SIMULATION_LATENCY_SECONDS.labels(engine="linear_programming").observe(time.perf_counter() - started)
+    SIMULATION_LATENCY_SECONDS.labels(engine="linear_programming").observe(
+        time.perf_counter() - started
+    )
 
     return OptimizationResponse(
         solver_status=status_str,

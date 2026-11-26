@@ -1,4 +1,5 @@
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,9 +16,7 @@ class Settings(BaseSettings):
     weather_longitude: float = 72.8777
     weather_location_name: str = "Mumbai Retail Hub"
     holiday_country_code: str = "US"
-    kaggle_groceries_feed_url: str = (
-        "https://raw.githubusercontent.com/stedy/Machine-Learning-with-R-datasets/master/groceries.csv"
-    )
+    kaggle_groceries_feed_url: str = "https://raw.githubusercontent.com/stedy/Machine-Learning-with-R-datasets/master/groceries.csv"
 
     mlflow_tracking_uri: str = "./mlruns"
     auto_rollback_mae_tolerance: float = 1.05
