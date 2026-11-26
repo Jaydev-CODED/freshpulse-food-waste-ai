@@ -14,8 +14,10 @@ class Settings(BaseSettings):
 
     weather_latitude: float = 19.0760
     weather_longitude: float = 72.8777
-    weather_location_name: str = "Mumbai Retail Hub"
-    holiday_country_code: str = "US"
+    weather_location_name: str = "Mumbai APMC & Retail Hub"
+    holiday_country_code: str = "IN"
+    currency_code: str = "INR"
+    currency_symbol: str = "₹"
     kaggle_groceries_feed_url: str = "https://raw.githubusercontent.com/stedy/Machine-Learning-with-R-datasets/master/groceries.csv"
 
     mlflow_tracking_uri: str = "./mlruns"

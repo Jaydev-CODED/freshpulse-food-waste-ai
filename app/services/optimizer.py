@@ -92,7 +92,8 @@ def run_linear_programming_optimizer(
     value_at_risk = 0.0
 
     for item in items:
-        order_q = round(float(pulp.value(order_vars[item.sku]) or 0.0), 2)
+        raw_order = float(pulp.value(order_vars[item.sku]) or 0.0)
+        order_q = round(raw_order, 2)
         md_pct = round(float(pulp.value(markdown_vars[item.sku]) or 0.0), 1)
         sold_q = round(float(pulp.value(sell_vars[item.sku]) or 0.0), 2)
         waste_q = round(float(pulp.value(waste_vars[item.sku]) or 0.0), 2)
@@ -115,7 +116,7 @@ def run_linear_programming_optimizer(
 
         total_profit += sku_profit
         total_waste += waste_q
-        budget_used += order_q * item.unit_cost
+        budget_used += raw_order * item.unit_cost
         storage_used += item.current_stock_kg + order_q
         if item.days_remaining <= 2:
             value_at_risk += item.current_stock_kg * item.unit_cost

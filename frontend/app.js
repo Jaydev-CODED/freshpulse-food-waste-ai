@@ -3,6 +3,25 @@ const API_BASE = "/api/v1";
 let forecastChartInstance = null;
 let twinChartInstance = null;
 
+function formatINR(value, decimals = 0) {
+  const num = Number(value || 0);
+  return (
+    "₹" +
+    num.toLocaleString("en-IN", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    })
+  );
+}
+
+// Detect embedded shell mode (?embed=true or /shell)
+if (new URLSearchParams(window.location.search).get("embed") === "true" || window.location.pathname === "/shell") {
+  const header = document.getElementById("main-header");
+  if (header) header.classList.add("hidden");
+  const studio = document.getElementById("integration-studio");
+  if (studio) studio.classList.add("hidden");
+}
+
 function showBanner(message, isError = false) {
   const banner = document.getElementById("status-banner");
   banner.textContent = message;
@@ -59,15 +78,15 @@ async function loadDashboardSummary() {
   document.getElementById("dataset-pill").textContent =
     `Feed: ${data.data_source_info.transactions_ingested.toLocaleString()} real baskets`;
 
-  // KPIs
+  // KPIs (INR ₹)
   const k = data.kpis;
-  document.getElementById("kpi-risk").textContent = `$${k.inventory_value_at_risk_usd.toLocaleString()}`;
+  document.getElementById("kpi-risk").textContent = formatINR(k.inventory_value_at_risk_usd);
   document.getElementById("kpi-critical-skus").textContent = `${k.critical_expiry_skus} critical`;
-  document.getElementById("kpi-profit").textContent = `$${k.projected_7d_profit_usd.toLocaleString()}`;
+  document.getElementById("kpi-profit").textContent = formatINR(k.projected_7d_profit_usd);
   document.getElementById("kpi-waste").textContent = `${k.projected_waste_kg} kg`;
   document.getElementById("kpi-reduction").textContent = `-${k.waste_reduction_pct}% vs naive`;
   document.getElementById("kpi-records").textContent =
-    `Tracked sales observations: ${k.sales_records_count.toLocaleString()}`;
+    `Tracked sales observations: ${k.sales_records_count.toLocaleString("en-IN")}`;
 
   populateSkuSelects(data.inventory);
 
@@ -103,7 +122,7 @@ async function loadDashboardSummary() {
         <td class="py-2 px-2"><span class="rounded-full px-2 py-0.5 ${badgeClass}">${item.days_remaining}d / ${item.shelf_life_days}d</span></td>
         <td class="py-2 px-2 text-slate-400">${item.supplier_name}</td>
         <td class="py-2 px-2 text-sky-300">${item.basket_frequency.toLocaleString()}</td>
-        <td class="py-2 pl-2 text-right font-semibold ${item.value_at_risk_usd > 0 ? "text-rose-400" : "text-slate-400"}">$${item.value_at_risk_usd.toFixed(2)}</td>
+        <td class="py-2 pl-2 text-right font-semibold ${item.value_at_risk_usd > 0 ? "text-rose-400" : "text-slate-400"}">${formatINR(item.value_at_risk_usd, 2)}</td>
       </tr>`;
     })
     .join("");
@@ -230,7 +249,7 @@ async function runDigitalTwin() {
     </div>
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-2.5">
       <p class="text-slate-400">Expected Waste</p>
-      <p class="text-base font-bold text-violet-300">${data.expected_total_waste_kg} kg ($${data.expected_waste_cost_usd})</p>
+      <p class="text-base font-bold text-violet-300">${data.expected_total_waste_kg} kg (${formatINR(data.expected_waste_cost_usd)})</p>
     </div>`;
 
   const labels = data.trajectory.map((d) => `Day ${d.day}`);
@@ -259,7 +278,7 @@ async function runDigitalTwin() {
 
 async function loadAlerts() {
   const data = await fetchJson(`${API_BASE}/alerts`);
-  document.getElementById("alerts-savings").textContent = `Save $${data.total_potential_savings_usd}`;
+  document.getElementById("alerts-savings").textContent = `Save ${formatINR(data.total_potential_savings_usd)}`;
   document.getElementById("alerts-list").innerHTML = data.alerts
     .map((a) => {
       const badge =
@@ -275,7 +294,7 @@ async function loadAlerts() {
           <span class="rounded-full border px-2 py-0.5 text-[10px] font-semibold ${badge}">${a.severity}</span>
         </div>
         <p class="mt-1.5 text-slate-300 leading-relaxed">${a.recommendation}</p>
-        <p class="mt-1 text-emerald-400 font-medium">Expected recovery: $${a.expected_savings_usd}</p>
+        <p class="mt-1 text-emerald-400 font-medium">Expected recovery: ${formatINR(a.expected_savings_usd)}</p>
       </div>`;
     })
     .join("");
@@ -298,7 +317,7 @@ async function runLPOptimization() {
         <td class="py-2 px-2 text-emerald-300 font-semibold">+${a.recommended_order_kg} kg</td>
         <td class="py-2 px-2 text-amber-300">${a.recommended_markdown_pct}%</td>
         <td class="py-2 px-2 text-rose-300">${a.projected_waste_kg} kg</td>
-        <td class="py-2 pl-2 text-right font-semibold text-emerald-400">$${a.projected_profit_usd}</td>
+        <td class="py-2 pl-2 text-right font-semibold text-emerald-400">${formatINR(a.projected_profit_usd)}</td>
       </tr>`
     )
     .join("");
@@ -346,7 +365,7 @@ document.getElementById("twin-markdown").addEventListener("input", (e) => {
   document.getElementById("twin-md-val").textContent = e.target.value;
 });
 document.getElementById("lp-budget").addEventListener("input", (e) => {
-  document.getElementById("lp-budget-val").textContent = e.target.value;
+  document.getElementById("lp-budget-val").textContent = Number(e.target.value).toLocaleString("en-IN");
 });
 document.getElementById("lp-storage").addEventListener("input", (e) => {
   document.getElementById("lp-storage-val").textContent = e.target.value;
@@ -359,13 +378,90 @@ document.getElementById("sync-btn").addEventListener("click", async () => {
   btn.textContent = "Syncing...";
   try {
     const res = await fetchJson(`${API_BASE}/data/sync`, { method: "POST" });
-    showBanner(`Synced ${res.transactions_ingested.toLocaleString()} baskets (${res.dataset_source})`);
+    showBanner(`Synced ${res.transactions_ingested.toLocaleString("en-IN")} baskets (${res.dataset_source})`);
     await initDashboard();
   } catch (err) {
     showBanner(`Sync failed: ${err.message}`, true);
   } finally {
     btn.textContent = "Sync Real-Time Data";
   }
+});
+
+// User Data Import & Site Shell Studio handlers
+document.getElementById("load-sample-csv-btn").addEventListener("click", () => {
+  document.getElementById("csv-input").value = [
+    "sku,name,category,current_stock_kg,unit_cost,selling_price,shelf_life_days,days_remaining,supplier_name",
+    "KIRANA-TOMATO,Desi Fresh Tomatoes (kg),Fresh Produce,85,32,58,4,1,Nashik Mandi Hub",
+    "KIRANA-DHOKLA,Fresh Khaman Dhokla Batter,Prepared Food,40,95,165,2,1,Local Kitchen Co-op",
+    "KIRANA-BANANA,Yelakki Bananas (kg),Seasonal Fruits,70,48,88,5,2,Satara Fruit Farms",
+  ].join("\n");
+});
+
+document.getElementById("csv-file-input").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    document.getElementById("csv-input").value = ev.target.result;
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById("upload-csv-btn").addEventListener("click", async () => {
+  const csvText = document.getElementById("csv-input").value.trim();
+  const siteName = document.getElementById("csv-site-name").value.trim() || "My Indian Fresh Mart";
+  if (!csvText) {
+    showBanner("Please paste CSV data or click 'Load Sample Indian Kirana CSV' first.", true);
+    return;
+  }
+  try {
+    const res = await fetchJson(`${API_BASE}/integrate/upload-csv`, {
+      method: "POST",
+      body: JSON.stringify({ site_name: siteName, csv_text: csvText }),
+    });
+    showBanner(res.message);
+    await initDashboard();
+  } catch (err) {
+    showBanner(`CSV import failed: ${err.message}`, true);
+  }
+});
+
+document.getElementById("connect-site-btn").addEventListener("click", async () => {
+  const siteName = document.getElementById("connect-site-name").value.trim() || "FreshBazaar India";
+  const siteUrl = document.getElementById("connect-site-url").value.trim() || "https://myfreshstore.in";
+  const platformType = document.getElementById("connect-platform").value;
+  const feedUrl = document.getElementById("connect-feed-url").value.trim();
+  try {
+    const res = await fetchJson(`${API_BASE}/integrate/connect-site`, {
+      method: "POST",
+      body: JSON.stringify({
+        site_name: siteName,
+        site_url: siteUrl,
+        platform_type: platformType,
+        data_feed_url: feedUrl,
+        currency: "INR",
+      }),
+    });
+    document.getElementById("embed-script-code").textContent = res.script_embed_tag;
+    document.getElementById("embed-cli-code").textContent = res.shell_cli_command;
+    document.getElementById("embed-output").classList.remove("hidden");
+    showBanner(`Connected ${res.site_name}! Embed script & CLI shell ready.`);
+  } catch (err) {
+    showBanner(`Site connection failed: ${err.message}`, true);
+  }
+});
+
+document.getElementById("preview-shell-btn").addEventListener("click", () => {
+  if (window.FreshPulseShell) {
+    showBanner("Floating FreshPulse AI Shell widget is already active at the bottom-right!");
+    return;
+  }
+  const s = document.createElement("script");
+  s.src = "/embed.js";
+  s.dataset.site = document.getElementById("connect-site-name").value || "Partner Store";
+  s.dataset.currency = "INR";
+  document.body.appendChild(s);
+  showBanner("Loaded /embed.js! Click the green 'FreshPulse AI Shell (₹)' button at the bottom-right.");
 });
 
 initDashboard();

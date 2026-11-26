@@ -56,8 +56,50 @@ def fetch_live_weather() -> WeatherContext:
         )
 
 
+def _indian_festival_calendar(today: date) -> list[HolidayContext]:
+    """Curated Indian festival & APMC mandi holiday calendar fallback."""
+    year = today.year
+    festivals = [
+        (date(year, 1, 14), "Makar Sankranti / Pongal"),
+        (date(year, 1, 26), "Republic Day"),
+        (date(year, 3, 14), "Holi (Festival of Colors)"),
+        (date(year, 3, 31), "Eid-ul-Fitr"),
+        (date(year, 8, 15), "Independence Day"),
+        (date(year, 8, 27), "Ganesh Chaturthi"),
+        (date(year, 10, 2), "Gandhi Jayanti / Dussehra"),
+        (date(year, 10, 20), "Diwali (Lakshmi Puja)"),
+        (date(year, 11, 5), "Guru Nanak Jayanti"),
+        (date(year, 12, 25), "Christmas / Year-End Retail Peak"),
+    ]
+    upcoming: list[HolidayContext] = []
+    for f_date, f_name in festivals:
+        if f_date < today:
+            f_date = date(year + 1, f_date.month, f_date.day)
+        upcoming.append(
+            HolidayContext(
+                date=f_date,
+                name=f_name,
+                country_code="IN",
+                is_upcoming_within_7d=0 <= (f_date - today).days <= 7,
+            )
+        )
+    upcoming.sort(key=lambda h: h.date)
+    # Also surface an immediate Mandi / Weekend Haat spike if none within 7 days
+    if upcoming and not any(h.is_upcoming_within_7d for h in upcoming[:3]):
+        upcoming.insert(
+            0,
+            HolidayContext(
+                date=today + timedelta(days=3),
+                name="Weekend Mandi & Local Haat Demand Peak",
+                country_code="IN",
+                is_upcoming_within_7d=True,
+            ),
+        )
+    return upcoming[:5]
+
+
 def fetch_upcoming_holidays() -> list[HolidayContext]:
-    """Fetch upcoming public holidays/festivals from Nager.Date API with safe fallback."""
+    """Fetch upcoming public holidays/festivals from Nager.Date API with Indian festival fallback."""
     settings = get_settings()
     url = f"https://date.nager.at/api/v3/NextPublicHolidays/{settings.holiday_country_code}"
     today = date.today()
@@ -76,8 +118,10 @@ def fetch_upcoming_holidays() -> list[HolidayContext]:
                     is_upcoming_within_7d=0 <= (h_date - today).days <= 7,
                 )
             )
-        return holidays
+        return holidays if holidays else _indian_festival_calendar(today)
     except Exception:
+        if settings.holiday_country_code.upper() == "IN":
+            return _indian_festival_calendar(today)
         fallback_date = today + timedelta(days=4)
         return [
             HolidayContext(
@@ -119,34 +163,34 @@ def fetch_groceries_transactions() -> tuple[list[list[str]], str]:
 
 
 def get_supplier_telemetry() -> list[SupplierFeedItem]:
-    """Return perishable cold-chain supplier telemetry feed."""
+    """Return Indian perishable cold-chain supplier telemetry feed."""
     return [
         SupplierFeedItem(
-            supplier_name="GreenValley Dairy Co-op",
+            supplier_name="Amul / Mother Dairy Cold Chain",
             category="Dairy & Chilled",
             lead_time_days=1,
-            reliability_score=0.96,
+            reliability_score=0.97,
             cold_chain_status="Optimal (3.2°C)",
         ),
         SupplierFeedItem(
-            supplier_name="AgroFresh Harvest Farms",
+            supplier_name="Sahyadri Farms Nashik",
             category="Fresh Produce",
             lead_time_days=2,
-            reliability_score=0.92,
+            reliability_score=0.93,
             cold_chain_status="Optimal (6.0°C)",
         ),
         SupplierFeedItem(
-            supplier_name="Artisan Bakehouse Logistics",
+            supplier_name="Modern Bakery & Harvest Logistics",
             category="Bakery",
             lead_time_days=1,
-            reliability_score=0.94,
+            reliability_score=0.95,
             cold_chain_status="Ambient Controlled",
         ),
         SupplierFeedItem(
-            supplier_name="TropiFruit Cold Imports",
-            category="Exotic Fruits",
+            supplier_name="Ratnagiri & Nilgiri Fresh",
+            category="Seasonal Fruits",
             lead_time_days=3,
-            reliability_score=0.89,
+            reliability_score=0.90,
             cold_chain_status="Watch (8.4°C)",
         ),
     ]

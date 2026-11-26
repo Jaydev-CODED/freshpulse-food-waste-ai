@@ -77,3 +77,19 @@ class AlertLog(Base):
     recommendation: Mapped[str] = mapped_column(Text, nullable=False)
     expected_savings_usd: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class ExternalIntegration(Base):
+    """Stores connected external websites/platforms and custom data feed sources."""
+
+    __tablename__ = "external_integrations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    site_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    site_url: Mapped[str] = mapped_column(String(256), nullable=False)
+    platform_type: Mapped[str] = mapped_column(String(64), default="custom_web", nullable=False)
+    data_feed_url: Mapped[str] = mapped_column(String(512), default="", nullable=False)
+    currency: Mapped[str] = mapped_column(String(16), default="INR", nullable=False)
+    items_synced: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="connected", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

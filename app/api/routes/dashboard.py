@@ -65,6 +65,8 @@ def get_dashboard_summary(db: Session = Depends(get_db)) -> DashboardSummaryResp
             "waste_reduction_pct": opt_snapshot.waste_reduction_pct,
             "projected_7d_profit_usd": opt_snapshot.total_projected_profit_usd,
             "sales_records_count": total_sales_rows,
+            "currency": "INR",
+            "currency_symbol": "₹",
         },
         weather=weather,
         upcoming_holidays=holidays,

@@ -120,8 +120,8 @@ class DigitalTwinResponse(BaseModel):
 
 
 class OptimizationRequest(BaseModel):
-    max_budget_usd: float = Field(default=2500.0, ge=100.0, le=50000.0)
-    max_cold_storage_kg: float = Field(default=600.0, ge=50.0, le=5000.0)
+    max_budget_usd: float = Field(default=150000.0, ge=100.0, le=5000000.0)
+    max_cold_storage_kg: float = Field(default=800.0, ge=50.0, le=10000.0)
 
 
 class OptimizedSkuPlan(BaseModel):
@@ -189,3 +189,56 @@ class RetrainResponse(BaseModel):
     baseline_mae: float
     drift_psi: float
     message: str
+
+
+class WebhookInventoryItem(BaseModel):
+    sku: str
+    name: str
+    category: str = "General Grocery"
+    current_stock_kg: float = Field(ge=0.0)
+    unit_cost: float = Field(gt=0.0)
+    selling_price: float = Field(gt=0.0)
+    shelf_life_days: int = Field(default=7, ge=1, le=365)
+    days_remaining: int = Field(default=3, ge=0, le=365)
+    supplier_name: str = "Direct Mandi / Local Vendor"
+    supplier_lead_days: int = Field(default=1, ge=1, le=30)
+    spoilage_rate_per_day: float = Field(default=0.10, ge=0.0, le=0.95)
+
+
+class WebhookInventoryPayload(BaseModel):
+    site_name: str = "Custom Storefront"
+    items: list[WebhookInventoryItem]
+
+
+class CsvImportRequest(BaseModel):
+    site_name: str = "Custom Storefront"
+    csv_text: str
+
+
+class ConnectSiteRequest(BaseModel):
+    site_name: str
+    site_url: str
+    platform_type: str = "custom_web"
+    data_feed_url: str = ""
+    currency: str = "INR"
+
+
+class IntegrationSyncResult(BaseModel):
+    status: str
+    site_name: str
+    items_upserted: int
+    sales_rows_seeded: int
+    message: str
+
+
+class ConnectSiteResponse(BaseModel):
+    integration_id: int
+    site_name: str
+    site_url: str
+    platform_type: str
+    currency: str
+    items_synced: int
+    script_embed_tag: str
+    iframe_embed_tag: str
+    webhook_curl_example: str
+    shell_cli_command: str
