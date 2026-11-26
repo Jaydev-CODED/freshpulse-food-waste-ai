@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreshPulse AI | Food Wastage &amp; Inventory Digital Twin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0b1120; color: #e2e8f0; }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+      backdrop-filter: blur(12px);
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+  <!-- Top Navigation & Live External Telemetry Bar -->
+  <header class="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
+    <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 font-bold text-lg">
+          FP
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white">FreshPulse AI</h1>
+          <p class="text-xs text-slate-400">Real-Time Perishable Inventory Loss, Digital Twin &amp; MLOps Platform</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <span id="weather-pill" class="inline-flex items-center gap-1.5 rounded-full bg-sky-500/10 border border-sky-500/30 px-3 py-1.5 text-sky-300">
+          Loading weather...
+        </span>
+        <span id="holiday-pill" class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-amber-300">
+          Loading holidays...
+        </span>
+        <span id="dataset-pill" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-emerald-300">
+          Loading dataset...
+        </span>
+        <button id="sync-btn" class="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 font-semibold text-white transition cursor-pointer">
+          Sync Real-Time Data
+        </button>
+        <a href="/docs" target="_blank" class="rounded-lg border border-slate-700 hover:border-slate-500 px-3 py-1.5 text-slate-300 transition">
+          API Docs
+        </a>
+        <a href="/metrics" target="_blank" class="rounded-lg border border-slate-700 hover:border-slate-500 px-3 py-1.5 text-slate-300 transition">
+          Prometheus
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+    <!-- Toast Banner -->
+    <div id="status-banner" class="hidden rounded-xl border px-4 py-3 text-sm"></div>
+
+    <!-- Executive KPI Strip -->
+    <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="glass-card rounded-2xl p-5">
+        <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Inventory Value at Risk</p>
+        <div class="mt-2 flex items-baseline justify-between">
+          <p id="kpi-risk" class="text-2xl font-bold text-rose-400">--</p>
+          <span id="kpi-critical-skus" class="rounded-full bg-rose-500/15 px-2.5 py-0.5 text-xs font-medium text-rose-300">-- critical</span>
+        </div>
+        <p class="mt-1 text-xs text-slate-500">SKUs expiring within 48 hours</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5">
+        <p class="text-xs font-medium uppercase tracking-wider text-slate-400">LP Projected 7-Day Profit</p>
+        <div class="mt-2 flex items-baseline justify-between">
+          <p id="kpi-profit" class="text-2xl font-bold text-emerald-400">--</p>
+          <span class="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-300">PuLP Optimal</span>
+        </div>
+        <p class="mt-1 text-xs text-slate-500">Net margin after waste &amp; procurement</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5">
+        <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Projected Food Waste</p>
+        <div class="mt-2 flex items-baseline justify-between">
+          <p id="kpi-waste" class="text-2xl font-bold text-amber-300">--</p>
+          <span id="kpi-reduction" class="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-300">-- saved</span>
+        </div>
+        <p class="mt-1 text-xs text-slate-500">vs unoptimized naive replenishment</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5">
+        <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Champion Forecaster</p>
+        <div class="mt-2 flex items-baseline justify-between">
+          <p id="kpi-champion" class="text-2xl font-bold text-sky-400">--</p>
+          <span id="kpi-mae" class="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs font-medium text-sky-300">MAE --</span>
+        </div>
+        <p id="kpi-records" class="mt-1 text-xs text-slate-500">Tracked sales observations: --</p>
+      </div>
+    </section>
+
+    <!-- Row 1: XGBoost vs Random Forest Forecast + MLOps Auto-Rollback Panel -->
+    <section class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="glass-card rounded-2xl p-5 lg:col-span-2">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-base font-semibold text-white">AI Demand Forecast: XGBoost vs Random Forest</h2>
+            <p class="text-xs text-slate-400">Backtest validation + 7-day projection enriched with Open-Meteo weather &amp; holiday signals</p>
+          </div>
+          <select id="forecast-sku-select" class="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"></select>
+        </div>
+
+        <div class="h-64">
+          <canvas id="forecastChart"></canvas>
+        </div>
+
+        <div id="model-metrics-strip" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs"></div>
+      </div>
+
+      <!-- MLOps Drift & Auto-Rollback -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold text-white">MLOps &amp; Self-Learning Gate</h2>
+            <span id="drift-badge" class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-500/15 text-emerald-300">Healthy</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">PSI / KS drift check with automatic rollback if MAE degrades</p>
+
+          <div class="mt-4 space-y-2.5 rounded-xl bg-slate-900/70 p-3.5 border border-slate-800 text-xs">
+            <div class="flex justify-between"><span class="text-slate-400">Active Version</span><span id="mlops-version" class="font-semibold text-white">--</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Champion MAE / RMSE</span><span id="mlops-errors" class="font-semibold text-sky-300">--</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Data Drift (PSI)</span><span id="mlops-psi" class="font-semibold text-amber-300">--</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Auto-Rollback Tolerance</span><span id="mlops-tol" class="font-semibold text-slate-200">--</span></div>
+          </div>
+
+          <div class="mt-4 flex flex-col gap-2">
+            <button id="retrain-clean-btn" class="w-full rounded-lg bg-sky-600 hover:bg-sky-500 px-3 py-2 text-xs font-semibold text-white transition cursor-pointer">
+              Trigger Automated Retrain (Clean)
+            </button>
+            <button id="retrain-drift-btn" class="w-full rounded-lg bg-rose-600/80 hover:bg-rose-500 px-3 py-2 text-xs font-semibold text-white transition cursor-pointer">
+              Simulate Noisy Drift (Test Auto-Rollback)
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <p class="text-xs font-semibold text-slate-300 mb-2">Recent Registry History</p>
+          <div id="mlops-history" class="space-y-1.5 max-h-36 overflow-y-auto text-xs"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Row 2: Monte Carlo Digital Twin + Rule-Based Expiry Alerts -->
+    <section class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="glass-card rounded-2xl p-5 lg:col-span-2">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-base font-semibold text-white">Digital Twin: Monte Carlo Stochastic Inventory Simulator</h2>
+            <p class="text-xs text-slate-400">Simulates 500 future demand &amp; spoilage paths (P10 / P50 / P90 confidence bands)</p>
+          </div>
+          <button id="run-twin-btn" class="rounded-lg bg-violet-600 hover:bg-violet-500 px-3 py-1.5 text-xs font-semibold text-white transition cursor-pointer">
+            Run Simulation
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-xs">
+          <label class="block">
+            <span class="text-slate-400">SKU</span>
+            <select id="twin-sku-select" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-white"></select>
+          </label>
+          <label class="block">
+            <span class="text-slate-400">Reorder Qty (kg): <strong id="twin-reorder-val" class="text-white">40</strong></span>
+            <input id="twin-reorder" type="range" min="0" max="150" step="5" value="40" class="mt-2 w-full accent-violet-500" />
+          </label>
+          <label class="block">
+            <span class="text-slate-400">Flash Markdown (%): <strong id="twin-md-val" class="text-white">15</strong>%</span>
+            <input id="twin-markdown" type="range" min="0" max="50" step="5" value="15" class="mt-2 w-full accent-violet-500" />
+          </label>
+        </div>
+
+        <div class="h-60">
+          <canvas id="twinChart"></canvas>
+        </div>
+
+        <div id="twin-kpis" class="mt-4 grid grid-cols-3 gap-3 text-xs"></div>
+      </div>
+
+      <!-- Rule-Based Expiry Engine -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-base font-semibold text-white">Rule-Based Expiry Alerts</h2>
+            <p class="text-xs text-slate-400">Automated markdowns, cold-chain &amp; reorder triggers</p>
+          </div>
+          <span id="alerts-savings" class="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-300">$0</span>
+        </div>
+        <div id="alerts-list" class="space-y-2.5 overflow-y-auto max-h-96 pr-1"></div>
+      </div>
+    </section>
+
+    <!-- Row 3: Linear Programming Optimization + Apriori Market-Basket Rules -->
+    <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div class="glass-card rounded-2xl p-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-base font-semibold text-white">Linear Programming Optimizer (PuLP)</h2>
+            <p class="text-xs text-slate-400">Maximizes profit &amp; minimizes waste under budget and cold-storage limits</p>
+          </div>
+          <button id="run-lp-btn" class="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition cursor-pointer">
+            Re-Optimize Plan
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mb-4 text-xs">
+          <label class="block">
+            <span class="text-slate-400">Max Budget ($): <strong id="lp-budget-val" class="text-white">2500</strong></span>
+            <input id="lp-budget" type="range" min="500" max="5000" step="250" value="2500" class="mt-1.5 w-full accent-emerald-500" />
+          </label>
+          <label class="block">
+            <span class="text-slate-400">Cold Storage (kg): <strong id="lp-storage-val" class="text-white">800</strong></span>
+            <input id="lp-storage" type="range" min="400" max="1500" step="50" value="800" class="mt-1.5 w-full accent-emerald-500" />
+          </label>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="border-b border-slate-800 text-slate-400">
+              <tr>
+                <th class="py-2 pr-2">SKU</th>
+                <th class="py-2 px-2">Stock</th>
+                <th class="py-2 px-2">Order</th>
+                <th class="py-2 px-2">Markdown</th>
+                <th class="py-2 px-2">Waste</th>
+                <th class="py-2 pl-2 text-right">Profit</th>
+              </tr>
+            </thead>
+            <tbody id="lp-table-body" class="divide-y divide-slate-800/70"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Apriori Association Rules -->
+      <div class="glass-card rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-base font-semibold text-white">Apriori Product Bundles (Real Groceries Data)</h2>
+            <p id="apriori-source" class="text-xs text-slate-400">Mining basket co-occurrence for expiry cross-sell promos</p>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="border-b border-slate-800 text-slate-400">
+              <tr>
+                <th class="py-2 pr-2">If Customer Buys</th>
+                <th class="py-2 px-2">Bundle With</th>
+                <th class="py-2 px-2">Conf.</th>
+                <th class="py-2 pl-2 text-right">Lift</th>
+              </tr>
+            </thead>
+            <tbody id="apriori-table-body" class="divide-y divide-slate-800/70"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Row 4: Suppliers & Inventory Snapshot -->
+    <section class="glass-card rounded-2xl p-5">
+      <h2 class="text-base font-semibold text-white mb-3">Live Perishable Inventory &amp; Cold-Chain Suppliers</h2>
+      <div id="suppliers-strip" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 text-xs"></div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="border-b border-slate-800 text-slate-400">
+            <tr>
+              <th class="py-2 pr-2">Product</th>
+              <th class="py-2 px-2">Category</th>
+              <th class="py-2 px-2">Stock (kg)</th>
+              <th class="py-2 px-2">Shelf Life</th>
+              <th class="py-2 px-2">Supplier</th>
+              <th class="py-2 px-2">Kaggle Basket Freq</th>
+              <th class="py-2 pl-2 text-right">Value at Risk</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-table-body" class="divide-y divide-slate-800/70"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

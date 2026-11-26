@@ -1,0 +1,16 @@
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+sqlalchemy==2.1.9
+psycopg2-binary==2.9.13
+pydantic-settings==2.16.3
+httpx==0.28.1
+pandas==3.1.1
+numpy==2.5.5
+scikit-learn==1.9.1
+xgboost==3.4.1
+scipy==1.18.1
+pulp==2.9.0
+mlxtend==0.25.0
+prometheus-client==0.26.0
+pytest==9.2.0
+ruff==0.17.6
