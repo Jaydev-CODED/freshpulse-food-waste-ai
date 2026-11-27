@@ -1,5 +1,5 @@
 # FreshPulse AI 🌿
-### AI-Powered Food Inventory Loss & Wastage Optimization Platform
+## AI-Powered Food Inventory Loss & Wastage Optimization Platform
 
 > **A demonstrable, full-stack AI system** that ingests real grocery transaction data from Kaggle/UCI, trains self-improving ML models, simulates future inventory with a Monte Carlo Digital Twin, and optimizes perishable profit with Linear Programming — all visualized on a live dashboard.
 
