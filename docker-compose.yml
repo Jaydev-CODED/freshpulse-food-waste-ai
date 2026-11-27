@@ -27,7 +27,7 @@ services:
       WEATHER_LATITUDE: 19.0760
       WEATHER_LONGITUDE: 72.8777
       WEATHER_LOCATION_NAME: Mumbai Retail Hub
-      HOLIDAY_COUNTRY_CODE: US
+      HOLIDAY_COUNTRY_CODE: IN
     ports:
       - "8000:8000"
 
